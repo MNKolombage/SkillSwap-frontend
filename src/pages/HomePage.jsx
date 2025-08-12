@@ -5,12 +5,10 @@ import Footer from "../components/HomePage/Footer";
 
 const HomePage = () => {
   return (
-    <div className="w-full min-h-screen bg-white overflow-x-hidden" style={{ margin: 0, padding: 0 }}>
-      {/* Navigation Header */}
+    <div className="w-full min-h-screen bg-white overflow-x-hidden">
       <Navbar />
       <WelcomeSection />
       <HeroSection />
-
       <Footer />
     </div>
   );
