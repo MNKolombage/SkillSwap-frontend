@@ -1,6 +1,7 @@
 import Logo from '../../assets/Logo.png';
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react'; 
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false); 
@@ -40,24 +41,32 @@ const Navbar = () => {
 
           {/* Mobile Sign In and Register Buttons */}
           <div className="flex flex-col space-y-3 mt-4">
-            <button className="px-4 py-2 border border-primary text-primary rounded transition hover:bg-primary hover:text-white">
-              Sign In
-            </button>
-            <button className="px-4 py-2 bg-primary text-white rounded transition hover:bg-blue-700 hover:text-white">
-              Register
-            </button>
+            <Link to="/login">
+              <button className="px-4 py-1 border border-primary text-primary rounded transition hover:bg-primary hover:text-white">
+                Sign In
+              </button>
+            </Link>
+            <Link to="/login">
+              <button className="px-4 py-1 bg-primary text-white rounded transition hover:bg-blue-700 hover:text-white">
+                Register
+              </button>
+            </Link>
           </div>
         </div>
       )}
 
       {/* Desktop Buttons */}
       <div className="hidden md:flex space-x-3">
-        <button className="px-4 py-1 border border-primary text-primary rounded transition hover:bg-primary hover:text-white">
-          Sign In
-        </button>
-        <button className="px-4 py-1 bg-primary text-white rounded transition hover:bg-blue-700 hover:text-white">
-          Register
-        </button>
+        <Link to="/login">
+          <button className="px-4 py-1 border border-primary text-primary rounded transition hover:bg-primary hover:text-white">
+            Sign In
+          </button>
+        </Link>
+        <Link to="/login">
+          <button className="px-4 py-1 bg-primary text-white rounded transition hover:bg-blue-700 hover:text-white">
+            Register
+          </button>
+        </Link>
       </div>
     </nav>
   );
