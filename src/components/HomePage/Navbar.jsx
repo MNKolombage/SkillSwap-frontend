@@ -18,9 +18,9 @@ const Navbar = () => {
 
       {/* Desktop Menu */}
       <ul className="hidden md:flex space-x-6 text-gray-700 font-medium">
-        <li><a href="#" className='hover:text-primary'>Home</a></li>
-        <li><a href="#" className='hover:text-primary'>About</a></li>
-        <li><a href="#" className='hover:text-primary'>Contact Us</a></li>
+        <li><Link to="/" className='hover:text-primary'>Home</Link></li>
+        <li><Link to="/about" className='hover:text-primary'>About</Link></li>
+        <li><Link to="/contact" className='hover:text-primary'>Contact Us</Link></li>
       </ul>
 
       {/* Mobile Menu Toggle Button */}
