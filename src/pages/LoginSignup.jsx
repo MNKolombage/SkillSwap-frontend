@@ -41,7 +41,7 @@ export default function LoginSignup() {
         });
 
         // save minimal user in localStorage (no password)
-        localStorage.setItem("ss_user", JSON.stringify(data.user));
+        localStorage.setItem("user", JSON.stringify(data.user));
 
         // go to dashboard
         navigate("/dashboard");

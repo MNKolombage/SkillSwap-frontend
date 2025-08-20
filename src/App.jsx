@@ -2,6 +2,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import HomePage from './pages/HomePage';
 import LoginSignup from "./pages/LoginSignup";
 import UserDashboard from "./pages/UserDashboard";
+import ProfilePage from "./pages/ProfilePage";
 
 const App = () => {
   const location = useLocation();
@@ -22,6 +23,7 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginSignup />} />
         <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </div>
   );

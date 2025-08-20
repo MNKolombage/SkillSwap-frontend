@@ -23,10 +23,10 @@ const Navbar = () => {
       </div>
 
       {/* Right: Profile */}
-      <div className="flex items-center space-x-2">
+      <Link to="/profile" className="flex items-center space-x-2 hover:bg-gray-100 px-3 py-1 rounded-md transition">
         <User className="text-gray-600" size={22} />
         <span className="font-medium text-gray-700">Maleesha</span>
-      </div>
+      </Link>
     </nav>
   );
 };
