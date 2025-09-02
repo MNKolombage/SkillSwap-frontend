@@ -21,10 +21,10 @@ const ProfilePage = () => {
       .catch((err) => {
         console.error("Profile fetch error:", err);
       });
-  } else {
-    console.log("No userId found in localStorage");
-  }
-}, [userId]);
+    } else {
+      console.log("No userId found in localStorage");
+    }
+  }, [userId]);
 
   // Handle changes
   const handleChange = (e) => {
@@ -79,7 +79,7 @@ const ProfilePage = () => {
 
         {/* Profile Details */}
         <div className="space-y-5">
-          {/* Full Name (always readonly) */}
+          {/* Full Name */}
           <div>
             <label className="font-semibold">Full Name:</label>
             <input
@@ -90,7 +90,7 @@ const ProfilePage = () => {
             />
           </div>
 
-          {/* Email (always readonly) */}
+          {/* Email */}
           <div>
             <label className="font-semibold">Email:</label>
             <input

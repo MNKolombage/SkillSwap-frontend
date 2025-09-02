@@ -3,6 +3,8 @@ import HomePage from './pages/HomePage';
 import LoginSignup from "./pages/LoginSignup";
 import UserDashboard from "./pages/UserDashboard";
 import ProfilePage from "./pages/ProfilePage";
+import ChatPage from "./pages/ChatPage";
+import { Router } from "lucide-react";
 
 const App = () => {
   const location = useLocation();
@@ -24,6 +26,7 @@ const App = () => {
         <Route path="/login" element={<LoginSignup />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/my-chats" element={<ChatPage />} />
       </Routes>
     </div>
   );
