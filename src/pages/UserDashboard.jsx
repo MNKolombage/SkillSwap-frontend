@@ -161,15 +161,15 @@ export default function UserDashboard() {
 
   const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
-    withCredentials: true, // if you use httpOnly cookie for JWT
+    withCredentials: true, // as we use httpOnly cookie for JWT
   });
 
-  // Fetch skills (optional, used to power dropdowns—falls back to free text)
+  // Fetch skills 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const res = await API.get("/skills"); // optional endpoint; ignore failure
+        const res = await API.get("/skills"); 
         if (mounted && Array.isArray(res.data)) setSkillsOptions(res.data);
       } catch {
         // silently ignore if not implemented yet
@@ -179,17 +179,20 @@ export default function UserDashboard() {
   }, []);
 
   // Compose query params
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("user") || "null"); }
+    catch { return null; }
+  }, []);
+
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
-    if (debouncedQ) params.set("q", debouncedQ);
-    if (offered.length) params.set("offered", offered.join(","));
-    if (wanted.length) params.set("wanted", wanted.join(","));
-    if (role && role !== "Any") params.set("role", role);
-    if (location) params.set("location", location);
-    params.set("page", String(page));
-    params.set("limit", "12");
+    // ...existing params...
+    if (currentUser?.id) params.set("exclude", currentUser.id);
+    // or, if you prefer cookie-based exclusion:
+    // params.set("excludeSelf", "1");
     return params.toString();
-  }, [debouncedQ, offered, wanted, role, location, page]);
+  }, [/* existing deps */, currentUser?.id]);
+
 
   // Fetch users
   const fetchUsers = useCallback(async () => {

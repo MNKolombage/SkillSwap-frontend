@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { StrictMode } from 'react';
 import App from './App';
 import './index.css';
+import axios from "axios";
+axios.defaults.withCredentials = true;
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <StrictMode>
