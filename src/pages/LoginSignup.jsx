@@ -7,6 +7,8 @@ import Navbar from "../components/HomePage/Navbar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+axios.defaults.withCredentials = true;
+
 export default function LoginSignup() {
   const [isLogin, setIsLogin] = useState(true);
   const [fullName, setFullName] = useState("");
@@ -17,8 +19,24 @@ export default function LoginSignup() {
 
   const API_BASE = "http://localhost:5000/api/auth";
 
+  const validateClient = () => {
+    if (!isLogin) {
+      if (!fullName.trim()) return "Full name is required";
+      if (password.length < 8) return "Password must be at least 8 characters";
+      if (!/[a-z]/.test(password)) return "Add at least one lowercase letter";
+      if (!/[A-Z]/.test(password)) return "Add at least one uppercase letter";
+      if (!/[0-9]/.test(password)) return "Add at least one number";
+      if (!/[^\w\s]/.test(password)) return "Add at least one symbol (e.g., !@#$%)";
+    }
+    // simple email check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Enter a valid email";
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errMsg = validateClient();
+    if (errMsg) return alert(errMsg);
     setLoading(true);
 
     try {
