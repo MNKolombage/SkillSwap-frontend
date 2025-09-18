@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/UserDashboard/Navbar";
-import { User, Loader2 } from "lucide-react";
+import { User, Loader2, Mail, MapPin, Briefcase, Cake, BookOpen, Star, Users } from "lucide-react";
 import axios from "axios";
 
 const api = axios.create({
@@ -120,45 +120,62 @@ export default function ProfilePage() {
   } px-4 py-2.5 text-sm transition-colors focus:border-indigo-500 focus:outline-none`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto py-12 px-6">
+      {/* Banner/Cover */}
+      <div className="relative h-48 md:h-56 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-b-3xl shadow-lg mb-[-4rem] md:mb-[-5rem] flex items-end justify-center">
+        {/* Optionally, add a pattern or SVG here for extra flair */}
+      </div>
+
+      <div className="max-w-4xl mx-auto pt-0 md:pt-8 px-4 md:px-6">
         {errMsg && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {errMsg}
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="relative z-10 bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-gray-200 p-8 md:p-12 mt-[-4rem] md:mt-[-5rem]">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8 pb-6 border-b">
-            <div className="flex items-center space-x-4">
-              {profile.avatarUrl ? (
-                <img 
-                  src={profile.avatarUrl}
-                  alt={getFullName(profile)}
-                  className="w-16 h-16 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <User size={32} className="text-indigo-500" />
-                </div>
-              )}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b gap-6 md:gap-0">
+            <div className="flex items-center space-x-6">
+              <div className="relative">
+                {profile.avatarUrl ? (
+                  <img 
+                    src={profile.avatarUrl}
+                    alt={getFullName(profile)}
+                    className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 border-white shadow-lg ring-4 ring-indigo-200"
+                  />
+                ) : (
+                  <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-indigo-100 flex items-center justify-center border-4 border-white shadow-lg ring-4 ring-indigo-200">
+                    <User size={48} className="text-indigo-400" />
+                  </div>
+                )}
+                <span className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md border border-gray-200">
+                  <Users size={18} className="text-indigo-400" />
+                </span>
+              </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {profile?.firstName || "User"}
+                <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+                  {profile?.firstName || "User"} {profile?.lastName}
                 </h2>
-                <p className="text-gray-500">{profile?.email}</p>
+                <div className="flex items-center gap-2 text-gray-500 mt-1">
+                  <Mail size={16} className="inline-block mr-1" />
+                  <span>{profile?.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-indigo-500 font-semibold mt-2">
+                  <Star size={16} className="inline-block mr-1" />
+                  <span>{profile?.role || "Both"}</span>
+                </div>
               </div>
             </div>
             <button
               onClick={isEditing ? handleSave : () => setIsEditing(true)}
               disabled={saving}
-              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-colors
+              className={`px-8 py-3 rounded-xl text-base font-semibold shadow-md transition-all duration-200
                 ${isEditing 
                   ? "bg-green-500 hover:bg-green-600 text-white" 
-                  : "bg-indigo-500 hover:bg-indigo-600 text-white"
+                  : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white"
                 } disabled:opacity-50`}
             >
               {saving ? (
@@ -172,8 +189,8 @@ export default function ProfilePage() {
           </div>
 
           {/* Profile Form */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField label="First Name">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <FormField label={<span className="flex items-center gap-2"><User size={16}/> First Name</span>}>
               <input
                 type="text"
                 name="firstName"
@@ -184,7 +201,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="Last Name">
+            <FormField label={<span className="flex items-center gap-2"><User size={16}/> Last Name</span>}>
               <input
                 type="text"
                 name="lastName"
@@ -195,7 +212,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="Role">
+            <FormField label={<span className="flex items-center gap-2"><Star size={16}/> Role</span>}>
               <select
                 name="role"
                 value={profile?.role || "Both"}
@@ -209,7 +226,7 @@ export default function ProfilePage() {
               </select>
             </FormField>
 
-            <FormField label="Bio" className="md:col-span-2">
+            <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Bio</span>} className="md:col-span-2">
               <textarea
                 name="bio"
                 value={profile?.bio || ""}
@@ -221,7 +238,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="Home Town">
+            <FormField label={<span className="flex items-center gap-2"><MapPin size={16}/> Home Town</span>}>
               <input
                 type="text"
                 name="homeTown"
@@ -232,7 +249,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="Age">
+            <FormField label={<span className="flex items-center gap-2"><Cake size={16}/> Age</span>}>
               <input
                 type="number"
                 name="age"
@@ -243,7 +260,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="Current Position">
+            <FormField label={<span className="flex items-center gap-2"><Briefcase size={16}/> Current Position</span>}>
               <input
                 type="text"
                 name="currentPosition"
@@ -254,7 +271,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="Avatar URL">
+            <FormField label={<span className="flex items-center gap-2"><User size={16}/> Avatar URL</span>}>
               <input
                 type="text"
                 name="avatarUrl"
@@ -266,7 +283,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="Skills Wanted" className="md:col-span-2">
+            <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Skills Wanted</span>} className="md:col-span-2">
               <input
                 type="text"
                 name="skillsWanted"
@@ -281,9 +298,19 @@ export default function ProfilePage() {
                 className={inputClassName}
                 placeholder={isEditing ? "Enter skills separated by commas..." : ""}
               />
+              {/* Show as badges if not editing */}
+              {!isEditing && Array.isArray(profile?.skillsWanted) && profile.skillsWanted.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {profile.skillsWanted.map((skill, idx) => (
+                    <span key={idx} className="inline-block bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-pink-200">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
             </FormField>
 
-            <FormField label="Skills Offered" className="md:col-span-2">
+            <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Skills Offered</span>} className="md:col-span-2">
               <input
                 type="text"
                 name="skillsOffered"
@@ -298,6 +325,15 @@ export default function ProfilePage() {
                 className={inputClassName}
                 placeholder={isEditing ? "Enter skills separated by commas..." : ""}
               />
+              {!isEditing && Array.isArray(profile?.skillsOffered) && profile.skillsOffered.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {profile.skillsOffered.map((skill, idx) => (
+                    <span key={idx} className="inline-block bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
             </FormField>
           </div>
         </div>
