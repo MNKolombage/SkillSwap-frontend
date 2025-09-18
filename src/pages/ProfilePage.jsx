@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import Navbar from "../components/UserDashboard/Navbar";
-import { User, Loader2, Mail, MapPin, Briefcase, Cake, BookOpen, Star, Users } from "lucide-react";
+import { User, Loader2, Mail, MapPin, Briefcase, Cake, BookOpen, Star, Users, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const api = axios.create({
@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errMsg, setErrMsg] = useState("");
+  const navigate = useNavigate();
 
   const listToString = (arr) => (Array.isArray(arr) ? arr.join(", ") : "");
   const stringToList = (s) =>
@@ -121,7 +122,14 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
-      <Navbar />
+      {/* Fixed Back Arrow Button */}
+      <button
+        onClick={() => navigate('/dashboard')}
+        className="fixed top-6 left-6 z-50 bg-white/80 hover:bg-indigo-100 border border-gray-200 rounded-full p-2 shadow transition"
+        aria-label="Back to Dashboard"
+      >
+        <ArrowLeft size={24} className="text-indigo-600" />
+      </button>
 
       {/* Banner/Cover */}
       <div className="relative h-48 md:h-56 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-b-3xl shadow-lg mb-[-4rem] md:mb-[-5rem] flex items-end justify-center">
