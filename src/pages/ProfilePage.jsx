@@ -1,194 +1,307 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/UserDashboard/Navbar";
-import { User } from "lucide-react"; 
+import { User, Loader2 } from "lucide-react";
 import axios from "axios";
 
-const ProfilePage = () => {
-  const storedUser = JSON.parse(localStorage.getItem("user")); // from login
-  const userId = storedUser?.id;
+const api = axios.create({
+  baseURL: import.meta.env?.VITE_API_URL || "http://localhost:5000",
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+});
 
+const FormField = ({ label, children, className = "" }) => (
+  <div className={`space-y-2 ${className}`}>
+    <label className="text-sm font-medium text-gray-700">{label}</label>
+    {children}
+  </div>
+);
+
+export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
 
-  // Fetch profile from backend
+  const listToString = (arr) => (Array.isArray(arr) ? arr.join(", ") : "");
+  const stringToList = (s) =>
+    (s || "").split(",").map((x) => x.trim()).filter(Boolean);
+
   useEffect(() => {
-    if (userId) {
-        axios
-            .get(`http://localhost:5000/api/auth/profile/${userId}`)
-            .then((res) => {
-                setProfile(res.data.user);
-        })
-      .catch((err) => {
-        console.error("Profile fetch error:", err);
-      });
-    } else {
-      console.log("No userId found in localStorage");
-    }
-  }, [userId]);
+    let cancelled = false;
+    
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        setErrMsg("");
+        const { data } = await api.get("/api/auth/me");
+        if (!cancelled) {
+          if (!data) {
+            setErrMsg("Please sign in to view your profile.");
+            setProfile(null);
+          } else {
+            setProfile(data.user || data);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          console.error("Profile fetch error:", e.response || e);
+          setErrMsg("Couldn't load your profile. Are you signed in?");
+          setProfile(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-  // Handle changes
+    fetchProfile();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setProfile({ ...profile, [name]: value });
+    setProfile(prev => ({ ...prev, [name]: value }));
   };
 
-  // Handle Save
-  const handleSave = () => {
-    axios
-      .patch(`http://localhost:5000/api/auth/update-profile/${userId}`, profile)
-      .then((res) => {
-        setProfile(res.data.user);
-        setIsEditing(false);
-      })
-      .catch((err) => console.error(err));
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setErrMsg("");
+      
+      const payload = {
+        ...profile,
+        skillsWanted: Array.isArray(profile.skillsWanted) 
+          ? profile.skillsWanted 
+          : stringToList(profile.skillsWanted),
+        skillsOffered: Array.isArray(profile.skillsOffered) 
+          ? profile.skillsOffered 
+          : stringToList(profile.skillsOffered),
+      };
+
+      const { data } = await api.patch("/api/auth/me", payload);
+      setProfile(data.user || data);
+      setIsEditing(false);
+    } catch (e) {
+      console.error("Save error:", e.response || e);
+      setErrMsg(e.response?.data?.message || "Couldn't save changes. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  if (!profile) return <div className="mt-24 text-center">Loading...</div>;
+  const getFullName = (profile) => {
+    if (!profile) return "";
+    return `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (!profile && !loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="max-w-4xl mx-auto mt-24 px-6">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {errMsg || "Please sign in to view your profile"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const inputClassName = `w-full rounded-lg border ${
+    isEditing ? "border-gray-300 bg-white" : "border-gray-200 bg-gray-50"
+  } px-4 py-2.5 text-sm transition-colors focus:border-indigo-500 focus:outline-none`;
 
   return (
-    <div className="w-full min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto mt-24 px-6">
-        {/* Profile Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-              <User size={36} className="text-gray-500" />
+      <div className="max-w-4xl mx-auto py-12 px-6">
+        {errMsg && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {errMsg}
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8 pb-6 border-b">
+            <div className="flex items-center space-x-4">
+              {profile.avatarUrl ? (
+                <img 
+                  src={profile.avatarUrl}
+                  alt={getFullName(profile)}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <User size={32} className="text-indigo-500" />
+                </div>
+              )}
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {profile?.firstName || "User"}
+                </h2>
+                <p className="text-gray-500">{profile?.email}</p>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold">
-              Hello {profile.fullName || "User"}!
-            </h2>
-          </div>
-          {isEditing ? (
             <button
-              onClick={handleSave}
-              className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-md"
+              onClick={isEditing ? handleSave : () => setIsEditing(true)}
+              disabled={saving}
+              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-colors
+                ${isEditing 
+                  ? "bg-green-500 hover:bg-green-600 text-white" 
+                  : "bg-indigo-500 hover:bg-indigo-600 text-white"
+                } disabled:opacity-50`}
             >
-              SAVE
+              {saving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : isEditing ? (
+                "Save Changes"
+              ) : (
+                "Edit Profile"
+              )}
             </button>
-          ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded-md"
-            >
-              EDIT
-            </button>
-          )}
-        </div>
-
-        {/* Profile Details */}
-        <div className="space-y-5">
-          {/* Full Name */}
-          <div>
-            <label className="font-semibold">Full Name:</label>
-            <input
-              type="text"
-              value={profile.fullName}
-              readOnly
-              className="block mt-1 w-full max-w-sm bg-gray-100 border border-gray-300 rounded-md px-3 py-2"
-            />
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="font-semibold">Email:</label>
-            <input
-              type="email"
-              value={profile.email}
-              readOnly
-              className="block mt-1 w-full max-w-sm bg-gray-100 border border-gray-300 rounded-md px-3 py-2"
-            />
-          </div>
+          {/* Profile Form */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField label="First Name">
+              <input
+                type="text"
+                name="firstName"
+                value={profile?.firstName || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
 
-          {/* Home Town */}
-          <div>
-            <label className="font-semibold">Home Town:</label>
-            <input
-              type="text"
-              name="homeTown"
-              value={profile.homeTown || ""}
-              onChange={handleChange}
-              readOnly={!isEditing}
-              className={`block mt-1 w-full max-w-sm ${
-                isEditing ? "bg-white" : "bg-gray-100"
-              } border border-gray-300 rounded-md px-3 py-2`}
-            />
-          </div>
+            <FormField label="Last Name">
+              <input
+                type="text"
+                name="lastName"
+                value={profile?.lastName || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
 
-          {/* Age */}
-          <div>
-            <label className="font-semibold">Age:</label>
-            <input
-              type="number"
-              name="age"
-              value={profile.age || ""}
-              onChange={handleChange}
-              readOnly={!isEditing}
-              className={`block mt-1 w-full max-w-sm ${
-                isEditing ? "bg-white" : "bg-gray-100"
-              } border border-gray-300 rounded-md px-3 py-2`}
-            />
-          </div>
+            <FormField label="Role">
+              <select
+                name="role"
+                value={profile?.role || "Both"}
+                onChange={handleChange}
+                disabled={!isEditing}
+                className={inputClassName}
+              >
+                <option value="Learner">Learner</option>
+                <option value="Mentor">Mentor</option>
+                <option value="Both">Both</option>
+              </select>
+            </FormField>
 
-          {/* Current Position */}
-          <div>
-            <label className="font-semibold">Current Position:</label>
-            <input
-              type="text"
-              name="currentPosition"
-              value={profile.currentPosition || ""}
-              onChange={handleChange}
-              readOnly={!isEditing}
-              className={`block mt-1 w-full max-w-sm ${
-                isEditing ? "bg-white" : "bg-gray-100"
-              } border border-gray-300 rounded-md px-3 py-2`}
-            />
-          </div>
+            <FormField label="Bio" className="md:col-span-2">
+              <textarea
+                name="bio"
+                value={profile?.bio || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                rows={4}
+                className={inputClassName}
+                placeholder={isEditing ? "Tell us about yourself..." : ""}
+              />
+            </FormField>
 
-          {/* Skills Wanted */}
-          <div>
-            <label className="font-semibold">Skills Wanted:</label>
-            <input
-              type="text"
-              name="skillsWanted"
-              value={profile.skillsWanted?.join(", ") || ""}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  skillsWanted: e.target.value.split(",").map((s) => s.trim()),
-                })
-              }
-              readOnly={!isEditing}
-              className={`block mt-1 w-full max-w-sm ${
-                isEditing ? "bg-white" : "bg-gray-100"
-              } border border-gray-300 rounded-md px-3 py-2`}
-            />
-          </div>
+            <FormField label="Home Town">
+              <input
+                type="text"
+                name="homeTown"
+                value={profile?.homeTown || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
 
-          {/* Skills Offered */}
-          <div>
-            <label className="font-semibold">Skills Offered:</label>
-            <input
-              type="text"
-              name="skillsOffered"
-              value={profile.skillsOffered?.join(", ") || ""}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  skillsOffered: e.target.value.split(",").map((s) => s.trim()),
-                })
-              }
-              readOnly={!isEditing}
-              className={`block mt-1 w-full max-w-sm ${
-                isEditing ? "bg-white" : "bg-gray-100"
-              } border border-gray-300 rounded-md px-3 py-2`}
-            />
+            <FormField label="Age">
+              <input
+                type="number"
+                name="age"
+                value={profile?.age || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
+
+            <FormField label="Current Position">
+              <input
+                type="text"
+                name="currentPosition"
+                value={profile?.currentPosition || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
+
+            <FormField label="Avatar URL">
+              <input
+                type="text"
+                name="avatarUrl"
+                value={profile?.avatarUrl || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+                placeholder={isEditing ? "Enter image URL..." : ""}
+              />
+            </FormField>
+
+            <FormField label="Skills Wanted" className="md:col-span-2">
+              <input
+                type="text"
+                name="skillsWanted"
+                value={Array.isArray(profile?.skillsWanted) 
+                  ? listToString(profile.skillsWanted)
+                  : profile?.skillsWanted || ""}
+                onChange={(e) => setProfile(p => ({
+                  ...p,
+                  skillsWanted: stringToList(e.target.value)
+                }))}
+                readOnly={!isEditing}
+                className={inputClassName}
+                placeholder={isEditing ? "Enter skills separated by commas..." : ""}
+              />
+            </FormField>
+
+            <FormField label="Skills Offered" className="md:col-span-2">
+              <input
+                type="text"
+                name="skillsOffered"
+                value={Array.isArray(profile?.skillsOffered)
+                  ? listToString(profile.skillsOffered)
+                  : profile?.skillsOffered || ""}
+                onChange={(e) => setProfile(p => ({
+                  ...p,
+                  skillsOffered: stringToList(e.target.value)
+                }))}
+                readOnly={!isEditing}
+                className={inputClassName}
+                placeholder={isEditing ? "Enter skills separated by commas..." : ""}
+              />
+            </FormField>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default ProfilePage;
+}

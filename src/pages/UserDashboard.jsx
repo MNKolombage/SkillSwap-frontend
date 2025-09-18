@@ -55,21 +55,22 @@ function Chip({ children }) {
  * Single user card
  */
 function UserCard({ user, onConnect, busy }) {
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  
   return (
     <div className="flex flex-col items-center rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-gray-100">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-2xl">
         {user.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             className="h-16 w-16 rounded-full object-cover"
             src={user.avatarUrl}
-            alt={user.fullName}
+            alt={fullName}
           />
         ) : (
           "👤"
         )}
       </div>
-      <h3 className="mb-1 line-clamp-1 font-semibold">{user.fullName}</h3>
+      <h3 className="mb-1 line-clamp-1 font-semibold">{fullName}</h3>
       {user.location && (
         <p className="mb-2 text-xs text-gray-500">{user.location}</p>
       )}
@@ -180,18 +181,32 @@ export default function UserDashboard() {
 
   // Compose query params
   const currentUser = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("user") || "null"); }
-    catch { return null; }
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      return user;
+    } catch {
+      return null;
+    }
   }, []);
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
-    // ...existing params...
-    if (currentUser?.id) params.set("exclude", currentUser.id);
-    // or, if you prefer cookie-based exclusion:
-    // params.set("excludeSelf", "1");
+    if (q) params.set("q", q);
+    if (role !== "Any") params.set("role", role);
+    if (location) params.set("location", location);
+    if (offered.length) params.set("offered", offered.join(","));
+    if (wanted.length) params.set("wanted", wanted.join(","));
+    params.set("page", page.toString());
+    
+    // Always exclude the current user
+    if (currentUser?._id) {
+      params.set("exclude", currentUser._id);
+    }
+    // Enable cookie-based exclusion as backup
+    params.set("excludeSelf", "1");
+    
     return params.toString();
-  }, [/* existing deps */, currentUser?.id]);
+  }, [q, role, location, offered, wanted, page, currentUser?._id]);
 
 
   // Fetch users
@@ -242,7 +257,9 @@ export default function UserDashboard() {
   const openConnect = (user) => {
     setConnectUser(user);
     setConnectMessage(
-      `Hi ${user.fullName?.split(" ")[0] || ""}! I can help with ${user.skillsWanted?.[0] ?? "your goals"} and would love to learn ${user.skillsOffered?.[0] ?? "from you"}.`
+      `Hi ${user.firstName || ""}! I can help with ${
+        user.skillsWanted?.[0] ?? "your goals"
+      } and would love to learn ${user.skillsOffered?.[0] ?? "from you"}.`
     );
     setConnectOpen(true);
   };
@@ -524,7 +541,7 @@ export default function UserDashboard() {
       <Modal
         open={connectOpen}
         onClose={() => setConnectOpen(false)}
-        title={connectUser ? `Request Swap with ${connectUser.fullName}` : "Request Swap"}
+        title={connectUser ? `Request Swap with ${connectUser.firstName} ${connectUser.lastName}` : "Request Swap"}
         footer={
           <div className="flex justify-end gap-2">
             <button
