@@ -7,135 +7,184 @@ import Navbar from "../components/HomePage/Navbar";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-axios.defaults.withCredentials = true;
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+});
 
 export default function LoginSignup() {
   const [isLogin, setIsLogin] = useState(true);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+  });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(""); // Add success message state
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE = "http://localhost:5000/api/auth";
-
-  const validateClient = () => {
-    if (!isLogin) {
-      if (!fullName.trim()) return "Full name is required";
-      if (password.length < 8) return "Password must be at least 8 characters";
-      if (!/[a-z]/.test(password)) return "Add at least one lowercase letter";
-      if (!/[A-Z]/.test(password)) return "Add at least one uppercase letter";
-      if (!/[0-9]/.test(password)) return "Add at least one number";
-      if (!/[^\w\s]/.test(password)) return "Add at least one symbol (e.g., !@#$%)";
-    }
-    // simple email check
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Enter a valid email";
-    return null;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errMsg = validateClient();
-    if (errMsg) return alert(errMsg);
+    setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
-      if (!isLogin) {
-        // --------- SIGN UP ---------
-        const { data } = await axios.post(`${API_BASE}/signup`, {
-          fullName,
-          email,
-          password,
-        });
-        alert(data.message || "Signed up!");
-        // optional: switch to login tab after successful signup
-        setIsLogin(true);
-        setPassword("");
+      if (isLogin) {
+        // Handle Login - use api instance instead of axios
+        const response = await api.post("/api/auth/login", formData);
+        if (response.data.user) {
+          // Store user data in localStorage
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+          navigate("/dashboard");
+        }
       } else {
-        // --------- SIGN IN ---------
-        const { data } = await axios.post(`${API_BASE}/signin`, {
-          email,
-          password,
-        });
-
-        // save minimal user in localStorage (no password)
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        // go to dashboard
-        navigate("/dashboard");
+        // Handle Signup - use api instance instead of axios
+        const response = await api.post("/api/auth/signup", formData);
+        if (response.data.user) {
+          setSuccess(
+            "Registration successful! Please login with your credentials."
+          );
+          setFormData({
+            email: "",
+            password: "",
+            firstName: "",
+            lastName: "",
+          });
+          // Switch to login form after 2 seconds
+          setTimeout(() => {
+            setIsLogin(true);
+          }, 2000);
+        }
       }
     } catch (err) {
-      console.error(err);
-      const msg =
-        err?.response?.data?.message ||
-        (isLogin ? "Login failed" : "Error signing up");
-      alert(msg);
+      console.error("Auth error:", err);
+      setError(err.response?.data?.message || "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <Navbar />
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row">
-        {/* Left Illustration */}
-        <div className="hidden md:flex md:w-1/2 bg-gray-100 items-center justify-center p-8">
-          <img src={Login} alt="SkillSwap Illustration" className="max-w-full h-auto" />
-        </div>
-
-        {/* Right Form */}
-        <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
-          {/* Logo + Toggle */}
-          <div className="flex justify-between items-center mb-6">
-            <img src={Logo} alt="SkillSwap Logo" className="w-30 h-8" />
-            <div className="flex space-x-4 text-sm font-medium">
-              <button
-                type="button"
-                className={`pb-1 border-b-2 ${isLogin ? "border-gray-800 text-gray-800" : "border-transparent text-gray-500"}`}
-                onClick={() => setIsLogin(true)}
-              >
-                LOGIN
-              </button>
-              <button
-                type="button"
-                className={`pb-1 border-b-2 ${!isLogin ? "border-gray-800 text-gray-800" : "border-transparent text-gray-500"}`}
-                onClick={() => setIsLogin(false)}
-              >
-                SIGN UP
-              </button>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* Show success message if exists */}
+          {success && (
+            <div className="mb-4 p-4 text-sm rounded-md bg-green-50 text-green-700 border border-green-200">
+              {success}
             </div>
-          </div>
+          )}
 
-          {/* Form */}
-          <h2 className="text-xl font-semibold mb-4">{isLogin ? "Login" : "Sign Up"}</h2>
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          {/* Show error message if exists */}
+          {error && (
+            <div className="mb-4 p-4 text-sm rounded-md bg-red-50 text-red-700 border border-red-200">
+              {error}
+            </div>
+          )}
+
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {!isLogin && (
-              <input
-                type="text"
-                placeholder="Full Name"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
+              <>
+                <div>
+                  <label
+                    htmlFor="firstName"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    First Name
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      required
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          firstName: e.target.value,
+                        })
+                      }
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="lastName"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Last Name
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          lastName: e.target.value,
+                        })
+                      }
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+              </>
             )}
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Email
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Password
+              </label>
+              <div className="mt-1">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
             <button
               type="submit"
               disabled={loading}
