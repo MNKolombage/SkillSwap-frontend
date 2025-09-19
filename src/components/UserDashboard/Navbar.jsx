@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import Logo from '../../assets/Logo.png';
 import { Search, User } from 'lucide-react';
