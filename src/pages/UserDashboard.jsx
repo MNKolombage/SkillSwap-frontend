@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/UserDashboard/Navbar";
+import SideBar from "../components/SideBar";
+import { Users } from "lucide-react";
 import axios from "axios";
 
 /**
@@ -58,7 +60,7 @@ function UserCard({ user, onConnect, busy }) {
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
   
   return (
-    <div className="flex flex-col items-center rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-gray-100">
+  <div className="flex flex-col items-center rounded-2xl bg-white p-5 text-center shadow-md ring-1 ring-gray-100 transition-transform hover:scale-[1.025] hover:shadow-lg">
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-2xl">
         {user.avatarUrl ? (
           <img
@@ -298,12 +300,16 @@ export default function UserDashboard() {
   const [wantedInput, setWantedInput] = useState("");
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <Navbar />
-      <div className="mx-auto mt-24 max-w-7xl px-6">
+      <SideBar />
+      <div className="mx-auto pt-24 max-w-7xl px-6 md:ml-64">
         {/* Header */}
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <Users className="text-indigo-400" size={28} />
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Dashboard</h1>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={handleMyChats}
@@ -528,7 +534,9 @@ export default function UserDashboard() {
           </>
         ) : (
           <div className="mt-12 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-600">
-            <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-gray-100 p-2">🔍</div>
+            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center">
+              <Users className="text-indigo-300" size={28} />
+            </div>
             <p className="font-medium">No users match your filters (yet)</p>
             <p className="text-sm text-gray-500">
               Try clearing some filters or broadening your search.

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import Navbar from "../components/UserDashboard/Navbar";
-import { User, Loader2, Briefcase, MapPin, Mail, Calendar, Plus, Camera } from "lucide-react";
+import { User, Loader2, Mail, MapPin, Briefcase, Cake, BookOpen, Star, Users, ArrowLeft } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import SkillsInput from '../components/Profile/SkillsInput';
+import Navbar from "../components/UserDashboard/Navbar";
 
 const api = axios.create({
   baseURL: import.meta.env?.VITE_API_URL || "http://localhost:5000",
@@ -17,29 +17,16 @@ const FormField = ({ label, children, className = "" }) => (
   </div>
 );
 
-const ProfileStat = ({ label, value }) => (
-  <div className="text-center px-4 py-2 bg-indigo-50 rounded-lg">
-    <div className="text-2xl font-bold text-indigo-600">{value}</div>
-    <div className="text-sm text-gray-600">{label}</div>
-  </div>
-);
-
-const ProfileSection = ({ title, icon: Icon, children }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-    <div className="flex items-center space-x-2 mb-4 text-gray-800">
-      <Icon size={20} />
-      <h3 className="text-lg font-semibold">{title}</h3>
-    </div>
-    {children}
-  </div>
-);
-
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errMsg, setErrMsg] = useState("");
+  const [wantedInput, setWantedInput] = useState("");
+  const [offeredInput, setOfferedInput] = useState("");
+  const navigate = useNavigate();
+  const { id } = useParams();
 
   const listToString = (arr) => (Array.isArray(arr) ? arr.join(", ") : "");
   const stringToList = (s) =>
@@ -47,12 +34,20 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
-    
     const fetchProfile = async () => {
       try {
         setLoading(true);
         setErrMsg("");
-        const { data } = await api.get("/api/auth/me");
+        let data;
+        if (id) {
+          // Fetch another user's profile
+          const res = await api.get(`/api/users/${id}`);
+          data = res.data;
+        } else {
+          // Fetch own profile
+          const res = await api.get("/api/auth/me");
+          data = res.data;
+        }
         if (!cancelled) {
           if (!data) {
             setErrMsg("Please sign in to view your profile.");
@@ -64,17 +59,16 @@ export default function ProfilePage() {
       } catch (e) {
         if (!cancelled) {
           console.error("Profile fetch error:", e.response || e);
-          setErrMsg("Couldn't load your profile. Are you signed in?");
+          setErrMsg("Couldn't load the profile. Are you signed in?");
           setProfile(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-
     fetchProfile();
     return () => { cancelled = true; };
-  }, []);
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -88,13 +82,6 @@ export default function ProfilePage() {
       
       const payload = {
         ...profile,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        age: profile.age,
-        currentPosition: profile.currentPosition,
-        homeTown: profile.homeTown,
-        role: profile.role,
-        bio: profile.bio || "", // Explicitly include bio
         skillsWanted: Array.isArray(profile.skillsWanted) 
           ? profile.skillsWanted 
           : stringToList(profile.skillsWanted),
@@ -118,6 +105,9 @@ export default function ProfilePage() {
     if (!profile) return "";
     return `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
   };
+
+  // Only allow editing if viewing own profile
+  const canEdit = !id;
 
   if (loading) {
     return (
@@ -145,213 +135,304 @@ export default function ProfilePage() {
   } px-4 py-2.5 text-sm transition-colors focus:border-indigo-500 focus:outline-none`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
+      {/* Fixed Back Arrow Button */}
+      <button
+        onClick={() => navigate(id ? -1 : '/dashboard')}
+        className="fixed top-6 left-6 z-50 bg-white/80 hover:bg-indigo-100 border border-gray-200 rounded-full p-2 shadow transition"
+        aria-label="Back"
+      >
+        <ArrowLeft size={24} className="text-indigo-600" />
+      </button>
 
-      <div className="max-w-6xl mx-auto py-12 px-6">
+      {/* Banner/Cover */}
+      <div className="relative h-48 md:h-56 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-b-3xl shadow-lg mb-[-4rem] md:mb-[-5rem] flex items-end justify-center">
+        {/* Optionally, add a pattern or SVG here for extra flair */}
+      </div>
+
+      <div className="max-w-4xl mx-auto pt-0 md:pt-8 px-4 md:px-6">
         {errMsg && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {errMsg}
           </div>
         )}
 
-        {/* Profile Header Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+        <div className="relative z-10 bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-gray-200 p-8 md:p-12 mt-[-4rem] md:mt-[-5rem]">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b gap-6 md:gap-0">
             <div className="flex items-center space-x-6">
               <div className="relative">
                 {profile.avatarUrl ? (
                   <img 
                     src={profile.avatarUrl}
                     alt={getFullName(profile)}
-                    className="w-24 h-24 rounded-full object-cover ring-4 ring-indigo-50"
+                    className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 border-white shadow-lg ring-4 ring-indigo-200"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center ring-4 ring-indigo-50">
-                    <User size={40} className="text-indigo-500" />
+                  <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-indigo-100 flex items-center justify-center border-4 border-white shadow-lg ring-4 ring-indigo-200">
+                    <User size={48} className="text-indigo-400" />
                   </div>
                 )}
-                {isEditing && (
-                  <button className="absolute bottom-0 right-0 p-1.5 bg-indigo-500 rounded-full text-white hover:bg-indigo-600 transition-colors">
-                    <Camera size={16} />
-                  </button>
-                )}
+                <span className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md border border-gray-200">
+                  <Users size={18} className="text-indigo-400" />
+                </span>
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-1">
-                  {getFullName(profile)}
+                <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+                  {profile?.firstName || "User"} {profile?.lastName}
                 </h2>
-                <div className="flex items-center space-x-4 text-gray-600">
-                  {profile?.currentPosition && (
-                    <div className="flex items-center">
-                      <Briefcase size={16} className="mr-1" />
-                      <span>{profile.currentPosition}</span>
-                    </div>
-                  )}
-                  {profile?.homeTown && (
-                    <div className="flex items-center">
-                      <MapPin size={16} className="mr-1" />
-                      <span>{profile.homeTown}</span>
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 text-gray-500 mt-1">
+                  <Mail size={16} className="inline-block mr-1" />
+                  <span>{profile?.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-indigo-500 font-semibold mt-2">
+                  <Star size={16} className="inline-block mr-1" />
+                  <span>{profile?.role || "Both"}</span>
                 </div>
               </div>
             </div>
             <button
               onClick={isEditing ? handleSave : () => setIsEditing(true)}
               disabled={saving}
-              className={`mt-4 md:mt-0 px-6 py-2.5 rounded-lg text-sm font-medium transition-colors
+              className={`px-8 py-3 rounded-xl text-base font-semibold shadow-md transition-all duration-200
                 ${isEditing 
                   ? "bg-green-500 hover:bg-green-600 text-white" 
-                  : "bg-indigo-500 hover:bg-indigo-600 text-white"
-                } disabled:opacity-50 flex items-center`}
+                  : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white"
+                } disabled:opacity-50`}
             >
               {saving ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : isEditing ? (
-                <>Save Changes</>
+                "Save Changes"
               ) : (
-                <>Edit Profile</>
+                "Edit Profile"
               )}
             </button>
           </div>
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <ProfileStat label="Skills Offered" value={profile?.skillsOffered?.length || 0} />
-            <ProfileStat label="Skills Wanted" value={profile?.skillsWanted?.length || 0} />
-            <ProfileStat label="Connections" value="0" />
-            <ProfileStat label="Swaps" value="0" />
-          </div>
-        </div>
+          {/* Profile Form */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <FormField label={<span className="flex items-center gap-2"><User size={16}/> First Name</span>}>
+              <input
+                type="text"
+                name="firstName"
+                value={profile?.firstName || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
 
-        {/* Profile Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="md:col-span-1 space-y-6">
-            <ProfileSection title="Basic Information" icon={User}>
-              <div className="space-y-4">
-                <FormField label="First Name">
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={profile?.firstName || ""}
-                    onChange={handleChange}
-                    readOnly={!isEditing}
-                    className={inputClassName}
-                  />
-                </FormField>
-                <FormField label="Last Name">
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={profile?.lastName || ""}
-                    onChange={handleChange}
-                    readOnly={!isEditing}
-                    className={inputClassName}
-                  />
-                </FormField>
-                <FormField label="Email">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Mail size={16} />
-                    <span>{profile?.email}</span>
+            <FormField label={<span className="flex items-center gap-2"><User size={16}/> Last Name</span>}>
+              <input
+                type="text"
+                name="lastName"
+                value={profile?.lastName || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
+
+            <FormField label={<span className="flex items-center gap-2"><Star size={16}/> Role</span>}>
+              <select
+                name="role"
+                value={profile?.role || "Both"}
+                onChange={handleChange}
+                disabled={!isEditing}
+                className={inputClassName}
+              >
+                <option value="Learner">Learner</option>
+                <option value="Mentor">Mentor</option>
+                <option value="Both">Both</option>
+              </select>
+            </FormField>
+
+            <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Bio</span>} className="md:col-span-2">
+              <textarea
+                name="bio"
+                value={profile?.bio || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                rows={4}
+                className={inputClassName}
+                placeholder={isEditing ? "Tell us about yourself..." : ""}
+              />
+            </FormField>
+
+            <FormField label={<span className="flex items-center gap-2"><MapPin size={16}/> Home Town</span>}>
+              <input
+                type="text"
+                name="homeTown"
+                value={profile?.homeTown || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
+
+            <FormField label={<span className="flex items-center gap-2"><Cake size={16}/> Age</span>}>
+              <input
+                type="number"
+                name="age"
+                value={profile?.age || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
+
+            <FormField label={<span className="flex items-center gap-2"><Briefcase size={16}/> Current Position</span>}>
+              <input
+                type="text"
+                name="currentPosition"
+                value={profile?.currentPosition || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+              />
+            </FormField>
+
+            <FormField label={<span className="flex items-center gap-2"><User size={16}/> Avatar URL</span>}>
+              <input
+                type="text"
+                name="avatarUrl"
+                value={profile?.avatarUrl || ""}
+                onChange={handleChange}
+                readOnly={!isEditing}
+                className={inputClassName}
+                placeholder={isEditing ? "Enter image URL..." : ""}
+              />
+            </FormField>
+
+
+            <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Skills Wanted</span>} className="md:col-span-2">
+              {canEdit && isEditing ? (
+                <>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {Array.isArray(profile?.skillsWanted) && profile.skillsWanted.map((skill, idx) => (
+                      <span key={idx} className="inline-flex items-center bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-pink-200">
+                        {skill}
+                        <button
+                          type="button"
+                          className="ml-2 text-pink-400 hover:text-pink-700 focus:outline-none"
+                          onClick={() => setProfile(p => ({
+                            ...p,
+                            skillsWanted: p.skillsWanted.filter((_, i) => i !== idx)
+                          }))}
+                          aria-label="Remove skill"
+                        >×</button>
+                      </span>
+                    ))}
                   </div>
-                </FormField>
-                <FormField label="Age">
-                  <input
-                    type="number"
-                    name="age"
-                    value={profile?.age || ""}
-                    onChange={handleChange}
-                    readOnly={!isEditing}
-                    className={inputClassName}
-                  />
-                </FormField>
-              </div>
-            </ProfileSection>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={wantedInput}
+                      onChange={e => setWantedInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && wantedInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsWanted: [...(Array.isArray(p.skillsWanted) ? p.skillsWanted : []), wantedInput.trim()]
+                          }));
+                          setWantedInput("");
+                        }
+                      }}
+                      className={inputClassName}
+                      placeholder="Add a skill and press Enter"
+                    />
+                    <button
+                      type="button"
+                      className="rounded-lg bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 text-sm font-semibold"
+                      onClick={() => {
+                        if (wantedInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsWanted: [...(Array.isArray(p.skillsWanted) ? p.skillsWanted : []), wantedInput.trim()]
+                          }));
+                          setWantedInput("");
+                        }
+                      }}
+                    >Add</button>
+                  </div>
+                </>
+              ) : (
+                Array.isArray(profile?.skillsWanted) && profile.skillsWanted.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {profile.skillsWanted.map((skill, idx) => (
+                      <span key={idx} className="inline-block bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-pink-200">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : null
+              )}
+            </FormField>
 
-            <ProfileSection title="Role & Location" icon={Briefcase}>
-              <div className="space-y-4">
-                <FormField label="Role">
-                  <select
-                    name="role"
-                    value={profile?.role || "Both"}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className={inputClassName}
-                  >
-                    <option value="Learner">Learner</option>
-                    <option value="Mentor">Mentor</option>
-                    <option value="Both">Both</option>
-                  </select>
-                </FormField>
-                <FormField label="Current Position">
-                  <input
-                    type="text"
-                    name="currentPosition"
-                    value={profile?.currentPosition || ""}
-                    onChange={handleChange}
-                    readOnly={!isEditing}
-                    className={inputClassName}
-                  />
-                </FormField>
-                <FormField label="Home Town">
-                  <input
-                    type="text"
-                    name="homeTown"
-                    value={profile?.homeTown || ""}
-                    onChange={handleChange}
-                    readOnly={!isEditing}
-                    className={inputClassName}
-                  />
-                </FormField>
-              </div>
-            </ProfileSection>
-          </div>
-
-          {/* Right Column */}
-          <div className="md:col-span-2 space-y-6">
-            <ProfileSection title="About Me" icon={User}>
-              <FormField label="Bio">
-                <textarea
-                  name="bio"
-                  value={profile?.bio || ""}
-                  onChange={handleChange}
-                  readOnly={!isEditing}
-                  rows={4}
-                  className={inputClassName}
-                  placeholder={isEditing ? "Tell us about yourself..." : ""}
-                />
-              </FormField>
-            </ProfileSection>
-
-            <ProfileSection title="Skills Exchange" icon={Plus}>
-              <div className="space-y-6">
-                <FormField label="Skills I Want to Learn">
-                  <SkillsInput
-                    skills={Array.isArray(profile?.skillsWanted) ? profile.skillsWanted : []}
-                    onChange={(newSkills) => setProfile(p => ({
-                      ...p,
-                      skillsWanted: newSkills
-                    }))}
-                    isEditing={isEditing}
-                    placeholder="Enter a skill you want to learn..."
-                  />
-                </FormField>
-
-                <FormField label="Skills I Can Teach">
-                  <SkillsInput
-                    skills={Array.isArray(profile?.skillsOffered) ? profile.skillsOffered : []}
-                    onChange={(newSkills) => setProfile(p => ({
-                      ...p,
-                      skillsOffered: newSkills
-                    }))}
-                    isEditing={isEditing}
-                    placeholder="Enter a skill you can teach..."
-                  />
-                </FormField>
-              </div>
-            </ProfileSection>
+            <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Skills Offered</span>} className="md:col-span-2">
+              {canEdit && isEditing ? (
+                <>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {Array.isArray(profile?.skillsOffered) && profile.skillsOffered.map((skill, idx) => (
+                      <span key={idx} className="inline-flex items-center bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
+                        {skill}
+                        <button
+                          type="button"
+                          className="ml-2 text-indigo-400 hover:text-indigo-700 focus:outline-none"
+                          onClick={() => setProfile(p => ({
+                            ...p,
+                            skillsOffered: p.skillsOffered.filter((_, i) => i !== idx)
+                          }))}
+                          aria-label="Remove skill"
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={offeredInput}
+                      onChange={e => setOfferedInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && offeredInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsOffered: [...(Array.isArray(p.skillsOffered) ? p.skillsOffered : []), offeredInput.trim()]
+                          }));
+                          setOfferedInput("");
+                        }
+                      }}
+                      className={inputClassName}
+                      placeholder="Add a skill and press Enter"
+                    />
+                    <button
+                      type="button"
+                      className="rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 text-sm font-semibold"
+                      onClick={() => {
+                        if (offeredInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsOffered: [...(Array.isArray(p.skillsOffered) ? p.skillsOffered : []), offeredInput.trim()]
+                          }));
+                          setOfferedInput("");
+                        }
+                      }}
+                    >Add</button>
+                  </div>
+                </>
+              ) : (
+                Array.isArray(profile?.skillsOffered) && profile.skillsOffered.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {profile.skillsOffered.map((skill, idx) => (
+                      <span key={idx} className="inline-block bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : null
+              )}
+            </FormField>
           </div>
         </div>
       </div>

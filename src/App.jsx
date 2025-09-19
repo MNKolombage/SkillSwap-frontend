@@ -4,6 +4,8 @@ import LoginSignup from "./pages/LoginSignup";
 import UserDashboard from "./pages/UserDashboard";
 import ProfilePage from "./pages/ProfilePage";
 import ChatPage from "./pages/ChatPage";
+import Connections from "./pages/Connections";
+import Requests from "./pages/Requests";
 import { Router } from "lucide-react";
 
 const App = () => {
@@ -25,8 +27,11 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginSignup />} />
         <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/my-chats" element={<ChatPage />} />
+  <Route path="/profile" element={<ProfilePage />} />
+  <Route path="/profile/:id" element={<ProfilePage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/connections" element={<Connections />} />
+        <Route path="/requests" element={<Requests />} />
       </Routes>
     </div>
   );
