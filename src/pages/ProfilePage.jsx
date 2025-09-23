@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import Navbar from "../components/UserDashboard/Navbar";
-import { User, Loader2, Mail, MapPin, Briefcase, Cake, BookOpen, Star, Users } from "lucide-react";
+import { User, Loader2, Mail, MapPin, Briefcase, Cake, BookOpen, Star, Users, ArrowLeft } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import Navbar from "../components/UserDashboard/Navbar";
 
 const api = axios.create({
   baseURL: import.meta.env?.VITE_API_URL || "http://localhost:5000",
@@ -22,6 +23,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errMsg, setErrMsg] = useState("");
+  const [wantedInput, setWantedInput] = useState("");
+  const [offeredInput, setOfferedInput] = useState("");
+  const navigate = useNavigate();
+  const { id } = useParams();
 
   const listToString = (arr) => (Array.isArray(arr) ? arr.join(", ") : "");
   const stringToList = (s) =>
@@ -29,12 +34,20 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
-    
     const fetchProfile = async () => {
       try {
         setLoading(true);
         setErrMsg("");
-        const { data } = await api.get("/api/auth/me");
+        let data;
+        if (id) {
+          // Fetch another user's profile
+          const res = await api.get(`/api/users/${id}`);
+          data = res.data;
+        } else {
+          // Fetch own profile
+          const res = await api.get("/api/auth/me");
+          data = res.data;
+        }
         if (!cancelled) {
           if (!data) {
             setErrMsg("Please sign in to view your profile.");
@@ -46,17 +59,16 @@ export default function ProfilePage() {
       } catch (e) {
         if (!cancelled) {
           console.error("Profile fetch error:", e.response || e);
-          setErrMsg("Couldn't load your profile. Are you signed in?");
+          setErrMsg("Couldn't load the profile. Are you signed in?");
           setProfile(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-
     fetchProfile();
     return () => { cancelled = true; };
-  }, []);
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -94,6 +106,9 @@ export default function ProfilePage() {
     return `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
   };
 
+  // Only allow editing if viewing own profile
+  const canEdit = !id;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -121,7 +136,14 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100">
-      <Navbar />
+      {/* Fixed Back Arrow Button */}
+      <button
+        onClick={() => navigate(id ? -1 : '/dashboard')}
+        className="fixed top-6 left-6 z-50 bg-white/80 hover:bg-indigo-100 border border-gray-200 rounded-full p-2 shadow transition"
+        aria-label="Back"
+      >
+        <ArrowLeft size={24} className="text-indigo-600" />
+      </button>
 
       {/* Banner/Cover */}
       <div className="relative h-48 md:h-56 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-b-3xl shadow-lg mb-[-4rem] md:mb-[-5rem] flex items-end justify-center">
@@ -283,56 +305,132 @@ export default function ProfilePage() {
               />
             </FormField>
 
+
             <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Skills Wanted</span>} className="md:col-span-2">
-              <input
-                type="text"
-                name="skillsWanted"
-                value={Array.isArray(profile?.skillsWanted) 
-                  ? listToString(profile.skillsWanted)
-                  : profile?.skillsWanted || ""}
-                onChange={(e) => setProfile(p => ({
-                  ...p,
-                  skillsWanted: stringToList(e.target.value)
-                }))}
-                readOnly={!isEditing}
-                className={inputClassName}
-                placeholder={isEditing ? "Enter skills separated by commas..." : ""}
-              />
-              {/* Show as badges if not editing */}
-              {!isEditing && Array.isArray(profile?.skillsWanted) && profile.skillsWanted.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {profile.skillsWanted.map((skill, idx) => (
-                    <span key={idx} className="inline-block bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-pink-200">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+              {canEdit && isEditing ? (
+                <>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {Array.isArray(profile?.skillsWanted) && profile.skillsWanted.map((skill, idx) => (
+                      <span key={idx} className="inline-flex items-center bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-pink-200">
+                        {skill}
+                        <button
+                          type="button"
+                          className="ml-2 text-pink-400 hover:text-pink-700 focus:outline-none"
+                          onClick={() => setProfile(p => ({
+                            ...p,
+                            skillsWanted: p.skillsWanted.filter((_, i) => i !== idx)
+                          }))}
+                          aria-label="Remove skill"
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={wantedInput}
+                      onChange={e => setWantedInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && wantedInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsWanted: [...(Array.isArray(p.skillsWanted) ? p.skillsWanted : []), wantedInput.trim()]
+                          }));
+                          setWantedInput("");
+                        }
+                      }}
+                      className={inputClassName}
+                      placeholder="Add a skill and press Enter"
+                    />
+                    <button
+                      type="button"
+                      className="rounded-lg bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 text-sm font-semibold"
+                      onClick={() => {
+                        if (wantedInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsWanted: [...(Array.isArray(p.skillsWanted) ? p.skillsWanted : []), wantedInput.trim()]
+                          }));
+                          setWantedInput("");
+                        }
+                      }}
+                    >Add</button>
+                  </div>
+                </>
+              ) : (
+                Array.isArray(profile?.skillsWanted) && profile.skillsWanted.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {profile.skillsWanted.map((skill, idx) => (
+                      <span key={idx} className="inline-block bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-pink-200">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : null
               )}
             </FormField>
 
             <FormField label={<span className="flex items-center gap-2"><BookOpen size={16}/> Skills Offered</span>} className="md:col-span-2">
-              <input
-                type="text"
-                name="skillsOffered"
-                value={Array.isArray(profile?.skillsOffered)
-                  ? listToString(profile.skillsOffered)
-                  : profile?.skillsOffered || ""}
-                onChange={(e) => setProfile(p => ({
-                  ...p,
-                  skillsOffered: stringToList(e.target.value)
-                }))}
-                readOnly={!isEditing}
-                className={inputClassName}
-                placeholder={isEditing ? "Enter skills separated by commas..." : ""}
-              />
-              {!isEditing && Array.isArray(profile?.skillsOffered) && profile.skillsOffered.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {profile.skillsOffered.map((skill, idx) => (
-                    <span key={idx} className="inline-block bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+              {canEdit && isEditing ? (
+                <>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {Array.isArray(profile?.skillsOffered) && profile.skillsOffered.map((skill, idx) => (
+                      <span key={idx} className="inline-flex items-center bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
+                        {skill}
+                        <button
+                          type="button"
+                          className="ml-2 text-indigo-400 hover:text-indigo-700 focus:outline-none"
+                          onClick={() => setProfile(p => ({
+                            ...p,
+                            skillsOffered: p.skillsOffered.filter((_, i) => i !== idx)
+                          }))}
+                          aria-label="Remove skill"
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={offeredInput}
+                      onChange={e => setOfferedInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && offeredInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsOffered: [...(Array.isArray(p.skillsOffered) ? p.skillsOffered : []), offeredInput.trim()]
+                          }));
+                          setOfferedInput("");
+                        }
+                      }}
+                      className={inputClassName}
+                      placeholder="Add a skill and press Enter"
+                    />
+                    <button
+                      type="button"
+                      className="rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 text-sm font-semibold"
+                      onClick={() => {
+                        if (offeredInput.trim()) {
+                          setProfile(p => ({
+                            ...p,
+                            skillsOffered: [...(Array.isArray(p.skillsOffered) ? p.skillsOffered : []), offeredInput.trim()]
+                          }));
+                          setOfferedInput("");
+                        }
+                      }}
+                    >Add</button>
+                  </div>
+                </>
+              ) : (
+                Array.isArray(profile?.skillsOffered) && profile.skillsOffered.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {profile.skillsOffered.map((skill, idx) => (
+                      <span key={idx} className="inline-block bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : null
               )}
             </FormField>
           </div>
