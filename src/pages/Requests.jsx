@@ -4,6 +4,18 @@ import axios from "axios";
 import Navbar from "../components/UserDashboard/Navbar";
 import SideBar from "../components/SideBar";
 
+// Helper to get and set confirmed connections in localStorage
+function getConnections() {
+  try {
+    return JSON.parse(localStorage.getItem("connections")) || [];
+  } catch {
+    return [];
+  }
+}
+function setConnections(conns) {
+  localStorage.setItem("connections", JSON.stringify(conns));
+}
+
 export default function Requests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +41,18 @@ export default function Requests() {
     setActionBusy(id + action);
     try {
       await axios.patch(`/api/swaps/${id}`, { action }, { withCredentials: true });
-      fetchRequests();
+      setRequests(prev => prev.filter(r => r._id !== id));
+      if (action === "accept") {
+        // Add to connections
+        const accepted = requests.find(r => r._id === id);
+        if (accepted) {
+          const prevConns = getConnections();
+          // Avoid duplicates
+          if (!prevConns.some(c => c._id === accepted._id)) {
+            setConnections([accepted, ...prevConns]);
+          }
+        }
+      }
     } catch {
       // Optionally show error
     } finally {
@@ -60,15 +83,19 @@ export default function Requests() {
                   }
                 }}
               >
-                {req.from.avatarUrl ? (
-                  <img src={req.from.avatarUrl} alt="" width={48} height={48} className="rounded-full border border-indigo-100 object-cover w-12 h-12" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-lg border border-indigo-100">
-                    {req.from.fullName ? req.from.fullName[0] : "?"}
-                  </div>
-                )}
+                <div className="flex flex-col items-center mr-2">
+                  {req.from.avatarUrl ? (
+                    <img src={req.from.avatarUrl} alt="" width={48} height={48} className="rounded-full border border-indigo-100 object-cover w-12 h-12" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-lg border border-indigo-100">
+                      {req.from.firstName ? req.from.firstName[0] : (req.from.fullName ? req.from.fullName[0] : "?")}
+                    </div>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-indigo-700 truncate">{req.from.fullName}</div>
+                  <div className="font-semibold text-indigo-700 truncate">
+                    {`${req.from.firstName || ''} ${req.from.lastName || ''}`.trim() || req.from.fullName || 'Unknown'}
+                  </div>
                   <div className="text-gray-600 text-sm mt-1 truncate">{req.message}</div>
                 </div>
                 <div className="flex gap-2">
